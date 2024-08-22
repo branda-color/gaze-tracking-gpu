@@ -1,0 +1,7 @@
+adjust_slope: false
+grid_calibration_samples: false
+k:
+- 9
+- 128
+learning_rate: 0.001
+weight_decay: 0

@@ -12,3 +12,4 @@ Pillow==8.3.2
 pytorch_lightning==1.4.9
 scikit-image==0.18.3
 torchinfo==1.5.3
+

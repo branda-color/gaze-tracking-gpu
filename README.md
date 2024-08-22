@@ -12,6 +12,15 @@ For the citaitions [1] - [10] please see below. "own model 1" represents the mod
 "own model 2" uses the same model architecture as "own model 1" but is trained without the erroneous data, see MPIIFaceGaze section below. 
 "own model 3" is the same as "own model 2" but with the calibrations points organized in a $\sqrt{k}\times\sqrt{k}$ grid instead of randomly on the screen.
 
+作為我碩士論文的一部分，我實現了一個基於Chen et al.工作的最新模型。
+對於9個校準樣本，先前的最先進性能可以提高最多5.44%（2.553度相比於2.7度），而對於128個校準樣本，則可以提高7%（2.418度相比於2.6度）。這是通過以下方式實現的：(a) 改善眼睛特徵的提取，(b) 優化這些特徵的融合過程，(c) 在訓練過程中從MPIIFaceGaze數據集中移除錯誤數據，以及 (d) 優化校準方法。
+
+同時提供了
+收集自己凝視數據的軟體：這個軟體可以讓使用者收集他們自己的眼睛凝視數據。https://github.com/pperle/gaze-data-collection
+完整的凝視追蹤管線：這是一個完整的眼睛追蹤流程，從數據收集到數據處理和分析。https://github.com/pperle/gaze-tracking-pipeline
+
+關於[1] - [10]的引用，請參見下文。「自有模型1」代表了下文中描述的模型。「自有模型2」使用了與「自有模型1」相同的模型架構，但在訓練時未使用錯誤數據，請參見下文的MPIIFaceGaze部分。「自有模型3」與「自有模型2」相同，但校準點在螢幕上排列成$\sqrt{k}\times\sqrt{k}$的網格，而不是隨機排列。
+
 
 ## Model
 Since the feature extractors share the same weights for both eyes, it has been shown experimentally that the feature extraction process can be improved by flipping one of the eye images so that the noses of all eye images are on the same side.
@@ -24,6 +33,12 @@ This introduces a control mechanism for the channel relationships of the extract
 Start training by running `python train.py --path_to_data=./data --validate_on_person=1 --test_on_person=0`.
 For pretrained models, please see evaluation section.
 
+由於特徵提取器對雙眼共享相同的權重，實驗表明，透過翻轉其中一張眼睛圖像使所有眼睛圖像的鼻子位於同一側，可以改進特徵提取過程。這主要是因為這樣可以讓雙眼圖像更相似，特徵提取器可以更專注於相關特徵，而不是左眼或右眼的無關特徵。
+
+對架構的改進中，最具影響力的是改進了左眼和右眼特徵的融合過程。取代簡單地將兩個特徵結合，它們是透過 Squeeze-and-Excitation（SE）塊來結合的。這引入了一種通道關係的控制機制，模型可以序列學習提取的特徵圖。
+
+要開始訓練，請運行 python train.py --path_to_data=./data --validate_on_person=1 --test_on_person=0。有關預訓練模型，請參閱評估部分。
+
 ## Data
 While examining and analyzing the most commonly used gaze prediction dataset, [MPIIFaceGaze](https://www.perceptualui.org/research/datasets/MPIIFaceGaze/) a subset of [MPIIGaze](https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/gaze-based-human-computer-interaction/appearance-based-gaze-estimation-in-the-wild/), in detail.
 It was realized that some recorded data does not match the provided screen sizes. 
@@ -31,10 +46,19 @@ For participant 2, 7, and 10, 0.043%, 8.79%, and 0.39% of the gazes directed at 
 The left figure below shows recorded points in the datasets that do not match the provided screen size. 
 These false target gaze positions are also visible in the right figure below, where the gaze point that are not on the screen have a different yaw offset to the ground truth.
 
+當我們仔細檢查和分析最常使用的注視預測数据集，MPIIFaceGaze時，
+我們發現了一些錄製的數據與提供的螢幕尺寸不匹配。
+對於參與者 2、7 和 10，分別有 0.043%、8.79% 和 0.39% 的注視螢幕的數據與提供的螢幕不匹配。
+下面的左圖顯示了數據集中與提供的螢幕尺寸不匹配的錄製點。
+這些錯誤的目標注視位置在下面的右圖中也清晰可見，其中不在螢幕上的注視點與地面真實值具有不同的偏航偏移。
+
 ![Results of the MPIIFaceGaze analysis](./docs/mpiifacegaze_analysis.png)
 
 To the best of our knowledge, we are the first to address this problem of this widespread dataset, and we propose to remove all days with any errors for people 2, 7, and 10, resulting in a new dataset we call MPIIFaceGaze-.
 This would only reduce the dataset by about 3.2%. As shown in the first figure, see "own model 2", removing these erroneous data improves the model's overall performance.
+
+根據我們的了解，我們是第一個處理這個廣泛使用的數據集中的問題的人，我們提議移除所有包含錯誤的數據，對於參與者 2、7 和 10，這將導致一個新的數據集，我們稱之為 MPIIFaceGaze-。
+這將只減少大約 3.2% 的數據集。如第一圖所示，參見“自己的模型 2”，移除這些錯誤數據提高了模型的整體性能。
 
 For preprocessing MPIIFaceGaze, [download](https://www.perceptualui.org/research/datasets/MPIIFaceGaze/) the original dataset and then
 run `python dataset/mpii_face_gaze_preprocessing.py --input_path=./MPIIFaceGaze --output_path=./data`.
