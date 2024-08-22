@@ -1,15 +1,15 @@
-scipy==1.4.1
-tqdm==4.61.2
-numpy==1.18.5
-h5py==2.10.0
-torch==1.9.0
+scipy==1.10.1
+tqdm==4.66.4
+numpy==1.24.4
+h5py==3.11.0
+torch== 2.0.1+cu117
 opencv_python==4.5.1.48
-torchvision==0.10.0
-albumentations==1.1.0
-matplotlib==3.4.3
-pandas==1.3.3
-Pillow==8.3.2
-pytorch_lightning==1.4.9
-scikit-image==0.18.3
-torchinfo==1.5.3
+torchvision== 0.15.2+cu117
+albumentations== 1.4.11
+matplotlib== 3.7.5
+pandas==2.0.3
+Pillow==10.4.0
+pytorch_lightning==1.6.5
+scikit-image==0.18.3  (none)
+torchinfo==1.8.0
 
