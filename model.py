@@ -4,16 +4,27 @@ from torch import nn
 from torchinfo import summary
 from torchvision import models
 
-
+# 實現 Squeeze-and-Excitation 層，這是一種通過學習通道之間的關係來增強模型性能的技術。通過 Squeeze 操作獲取通道統計，再通過 Excitation 層學習每個通道的重要性，最終調整輸入特徵的響應。
 class SELayer(nn.Module):
+    #class 子類名(父類名):
     """
     Squeeze-and-Excitation layer
 
     https://github.com/moskomule/senet.pytorch/blob/master/senet/se_module.py
+
+    增強網路的表示能力
+    1.Squeeze:這個操作使用全局平均池化來生成通道方向的統計資訊。它計算一個描述符來總結每個通道的全局分佈。
+    2.Excitation:這一步涉及一個全連接(FC)層,它根據擠壓後的統計資訊學習每個通道的重要性。它應用 sigmoid 激活函數來產生一組權重,這些權重可以乘以原始輸入特徵,以重新校準通道響應。
     """
 
     def __init__(self, channel, reduction=16):
+    # 初始化 (__init__ 方法):
+    # 在 Python 中，類的方法（包括初始化方法 __init__）的第一個參數通常命名為 self，這是一個約定俗成的做法。
+    # 接受兩個參數：channel（輸入通道數）和 reduction（可選，默認為 16，用於控制激發過程中的維度縮減）。
         super(SELayer, self).__init__()
+        #super() 是一個內建函數，用於獲取父類（超類）的對象。它可以用來調用父類的方法
+        # 在 super(SELayer, self) 中，SELayer 是當前類的名稱。這告訴 super() 我們希望獲取 SELayer 的父類（在這個例子中是 nn.Module）的引用。
+        # 調用父類的初始化方法：這行代碼確保 SELayer 的父類 nn.Module 的初始化方法被調用，這樣 SELayer 實例就能繼承 nn.Module 的所有屬性和方法，並正確設置其狀態。
         self.avg_pool = nn.AdaptiveAvgPool2d(1)  # Squeeze
         self.fc = nn.Sequential(  # Excitation (similar to attention)
             nn.Linear(channel, channel // reduction, bias=False),
@@ -23,6 +34,9 @@ class SELayer(nn.Module):
         )
 
     def forward(self, x):
+    # 前向傳遞 (forward 方法):
+    # 接受輸入張量 x,應用擠壓操作以獲得通道統計資訊,然後將這些統計資訊傳遞給激發層。
+    # 最後,它通過學習到的權重來縮放原始輸入 x。
         b, c, _, _ = x.size()
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
