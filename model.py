@@ -26,11 +26,17 @@ class SELayer(nn.Module):
         # 在 super(SELayer, self) 中，SELayer 是當前類的名稱。這告訴 super() 我們希望獲取 SELayer 的父類（在這個例子中是 nn.Module）的引用。
         # 調用父類的初始化方法：這行代碼確保 SELayer 的父類 nn.Module 的初始化方法被調用，這樣 SELayer 實例就能繼承 nn.Module 的所有屬性和方法，並正確設置其狀態。
         self.avg_pool = nn.AdaptiveAvgPool2d(1)  # Squeeze
+        #創建一個自適應平均池化層，將每個通道的特徵圖壓縮為一個單一的數值
         self.fc = nn.Sequential(  # Excitation (similar to attention)
+        #創建一個序列的全連接層，用於 Excitation 操作，這裡的結構類似於注意力機制。
             nn.Linear(channel, channel // reduction, bias=False),
+            #第一個全連接層，將通道數從 channel 縮減到 channel 整除 reduction，不使用偏置項。
             nn.ReLU(inplace=True),
+            #使用 ReLU 激活函數，將所有負值設置為 0，並保持正值不變。inplace=True 表示直接在輸入張量上進行操作，以節省內存。
             nn.Linear(channel // reduction, channel, bias=False),
+            #第二個全連接層，將通道數從 channel // reduction 重新映射回 channel，同樣不使用偏置項。
             nn.Sigmoid()
+            #使用 Sigmoid 激活函數，將輸出值限制在 0 到 1 之間，這些值將作為通道的權重。
         )
 
     def forward(self, x):
@@ -38,9 +44,9 @@ class SELayer(nn.Module):
     # 接受輸入張量 x,應用擠壓操作以獲得通道統計資訊,然後將這些統計資訊傳遞給激發層。
     # 最後,它通過學習到的權重來縮放原始輸入 x。
         b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
+        y = self.avg_pool(x).view(b, c) #擠壓（Squeeze）：使用 avg_pool 層將每個通道的特徵圖縮減到 1x1 大小，並計算平均值。
+        y = self.fc(y).view(b, c, 1, 1) #通過全連接層將擠壓後的平均值轉化為通道權重。
+        return x * y.expand_as(x)   #使用學到的通道權重來調整原始輸入張量 x 的每個通道的響應。
 
 
 class FinalModel(LightningModule):
