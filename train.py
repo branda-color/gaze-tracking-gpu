@@ -15,6 +15,7 @@ from utils import calc_angle_error, PitchYaw, plot_prediction_vs_ground_truth, l
 
 class Model(FinalModel):
     def __init__(self, learning_rate: float = 0.001, weight_decay: float = 0., k=None, adjust_slope: bool = False, grid_calibration_samples: bool = False, *args, **kwargs):
+    #這是類別的初始化函數，用來設置模型的參數。參數包括學習率、權重衰減、參數 k、是否調整斜率，以及是否使用網格校準樣本等。
         super().__init__(*args, **kwargs)
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
