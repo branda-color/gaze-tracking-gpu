@@ -3,6 +3,7 @@ from pytorch_lightning import LightningModule
 from torch import nn
 from torchinfo import summary
 from torchvision import models
+from torchvision.models import vgg16, VGG16_Weights
 
 class SELayer(nn.Module):
 
@@ -44,7 +45,7 @@ class FinalModel(LightningModule):
         self.subject_biases = nn.Parameter(torch.zeros(15 * 2, 2))  # pitch and yaw offset for the 
 
         self.cnn_face = nn.Sequential(
-            models.vgg16(pretrained=True).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
+            vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
             nn.Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1), padding='same'),
             nn.ReLU(inplace=True),
             nn.BatchNorm2d(64),
@@ -63,7 +64,7 @@ class FinalModel(LightningModule):
         )
 
         self.cnn_eye = nn.Sequential(
-            models.vgg16(pretrained=True).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
+            vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
             nn.Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1), padding='same'),
             nn.ReLU(inplace=True),
             nn.BatchNorm2d(64),

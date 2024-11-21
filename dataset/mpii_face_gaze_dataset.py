@@ -172,7 +172,7 @@ def get_dataloaders(path_to_data: str, validate_on_person: int, test_on_person: 
         ])
     }
 
-    train_on_persons = list(range(0, 15))
+    train_on_persons = list(range(0, 14))
     if validate_on_person in train_on_persons:
         train_on_persons.remove(validate_on_person)
     if test_on_person in train_on_persons:
@@ -183,14 +183,14 @@ def get_dataloaders(path_to_data: str, validate_on_person: int, test_on_person: 
 
     dataset_train = MPIIFaceGaze(path_to_data, 'data.h5', keep_person_idxs=train_on_persons, transform=transform['train'], train=True)
     print('len(dataset_train)', len(dataset_train))
-    train_dataloader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
+    train_dataloader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4,drop_last=True)
 
     dataset_valid = MPIIFaceGaze(path_to_data, 'data.h5', keep_person_idxs=[validate_on_person], transform=transform['valid'])
-    print('len(dataset_train)', len(dataset_valid))
-    valid_dataloader = DataLoader(dataset_valid, batch_size=batch_size, shuffle=False, num_workers=4)
+    print('len(dataset_valid)', len(dataset_valid))
+    valid_dataloader = DataLoader(dataset_valid, batch_size=batch_size, shuffle=False, num_workers=4,drop_last=True)
 
     dataset_test = MPIIFaceGaze(path_to_data, 'data.h5', keep_person_idxs=[test_on_person], transform=transform['valid'], use_erroneous_data=True)
-    print('len(dataset_train)', len(dataset_test))
-    test_dataloader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=4)
+    print('len(dataset_test)', len(dataset_test))
+    test_dataloader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=4,drop_last=True)
 
     return train_dataloader, valid_dataloader, test_dataloader
