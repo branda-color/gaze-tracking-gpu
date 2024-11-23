@@ -129,9 +129,6 @@ MANIFEST
 *.manifest
 *.spec
 
-# Model logs
-./tb_logs
-
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -253,4 +250,8 @@ cython_debug/
 .history
 .ionide
 
-# End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all,visualstudiocode
+#Model logs
+tb_logs/
+
+#model 
+saved_models/
