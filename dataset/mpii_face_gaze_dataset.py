@@ -172,7 +172,7 @@ def get_dataloaders(path_to_data: str, validate_on_person: int, test_on_person: 
         ])
     }
 
-    train_on_persons = list(range(0, 14))
+    train_on_persons = list(range(0, 15))
     if validate_on_person in train_on_persons:
         train_on_persons.remove(validate_on_person)
     if test_on_person in train_on_persons:
