@@ -255,3 +255,6 @@ tb_logs/
 
 #model 
 saved_models/
+
+##lighting_logs
+lightning_logs/
