@@ -4,6 +4,7 @@ from torch import nn
 from torchinfo import summary
 from torchvision import models
 from torchvision.models import vgg16, VGG16_Weights
+from kalman_filter import KalmanFilter
 
 class SELayer(nn.Module):
 
@@ -43,6 +44,20 @@ class FinalModel(LightningModule):
         super().__init__(*args, **kwargs)
 
         self.subject_biases = nn.Parameter(torch.zeros(15 * 2, 2))  # pitch and yaw offset for the 
+
+        # 初始化卡爾曼濾波器
+        self.kf_pitch = KalmanFilter(
+            initial_state=[0, 0],
+            state_covariance=[[1, 0], [0, 1]],
+            process_noise=[[0.01, 0], [0, 0.01]],
+            measurement_noise=[[0.1]]
+        )
+        self.kf_yaw = KalmanFilter(
+            initial_state=[0, 0],
+            state_covariance=[[1, 0], [0, 1]],
+            process_noise=[[0.01, 0], [0, 0.01]],
+            measurement_noise=[[0.1]]
+        )
 
         self.cnn_face = nn.Sequential(
             vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
@@ -138,7 +153,18 @@ class FinalModel(LightningModule):
         fc_concatenated = torch.cat((out_fc_face, out_fc_eye), dim=1)
         t_hat = self.fc_eyes_face(fc_concatenated)  # subject-independent term
 
-        return t_hat + self.subject_biases[person_idx].squeeze(1)  # t_hat + subject-dependent bias term
+    # 卡爾曼濾波處理
+        filtered_pitch = []
+        filtered_yaw = []
+        for batch_idx in range(t_hat.size(0)):  # 批次處理
+            pitch, yaw = t_hat[batch_idx].cpu().detach().numpy()
+            filtered_pitch.append(self.kf_pitch.update(pitch)[0])  # 只提取位置
+            filtered_yaw.append(self.kf_yaw.update(yaw)[0])
+
+        # 將濾波後的結果轉回 Tensor 格式
+        filtered_output = torch.tensor(list(zip(filtered_pitch, filtered_yaw))).to(t_hat.device)
+
+        return filtered_output  + self.subject_biases[person_idx].squeeze(1)  # t_hat + subject-dependent bias term
 
 
 if __name__ == '__main__':
