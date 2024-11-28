@@ -4,6 +4,7 @@ from torch import nn
 from torchinfo import summary
 from torchvision import models
 from torchvision.models import vgg16, VGG16_Weights
+from torchvision.models import resnet18, ResNet18_Weights
 from kalman_filter import KalmanFilter
 
 class SELayer(nn.Module):
@@ -29,7 +30,7 @@ class SELayer(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(channel // reduction, channel, bias=False),
             nn.Sigmoid()
-            
+
         )
 
     def forward(self, x):
@@ -59,24 +60,19 @@ class FinalModel(LightningModule):
             measurement_noise=[[0.1]]
         )
 
+        # 初始化 ResNet18
+        resnet = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+
         self.cnn_face = nn.Sequential(
-            vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
-            nn.Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1), padding='same'),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(64),
-            nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(2, 2)),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(64),
-            nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(3, 3)),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(64),
-            nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(5, 5)),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(128),
-            nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(11, 11)),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(128),
+            resnet.conv1,
+            resnet.bn1,
+            resnet.relu,
+            resnet.maxpool,
+            resnet.layer1,
+            resnet.layer2,
+            nn.AdaptiveAvgPool2d((6, 6))  # 固定輸出大小為 6x6
         )
+
 
         self.cnn_eye = nn.Sequential(
             vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
@@ -99,7 +95,7 @@ class FinalModel(LightningModule):
 
         self.fc_face = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(6 * 6 * 128, 256),
+            nn.Linear(128*6*6, 256),  # 使用動態計算的輸入大小
             nn.ReLU(inplace=True),
             nn.BatchNorm1d(256),
             nn.Linear(256, 64),
@@ -140,8 +136,11 @@ class FinalModel(LightningModule):
         )
 
     def forward(self, person_idx: torch.Tensor, full_face: torch.Tensor, right_eye: torch.Tensor, left_eye: torch.Tensor):
+        #print('傳入的full_face:',full_face.shape)
         out_cnn_face = self.cnn_face(full_face)
-        out_fc_face = self.fc_face(out_cnn_face)
+        #print('輸出的cnn_face:',out_cnn_face.shape)
+        out_fc_face = self.fc_face(out_cnn_face.view(out_cnn_face.size(0), -1))
+        #print("FC face output shape:", out_fc_face.shape)
 
         out_cnn_right_eye = self.cnn_eye(right_eye)
         out_cnn_left_eye = self.cnn_eye(left_eye)
@@ -168,10 +167,10 @@ class FinalModel(LightningModule):
 
 
 if __name__ == '__main__':
+    print("Initializing model...")
     model = FinalModel()
+    print("Model initialized successfully!")
     model.summarize(max_depth=1)
-
-    print(model.cnn_face)
 
     batch_size = 16
     summary(model, [
