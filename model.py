@@ -64,33 +64,57 @@ class FinalModel(LightningModule):
         resnet = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
 
         self.cnn_face = nn.Sequential(
-            resnet.conv1,
-            resnet.bn1,
-            resnet.relu,
-            resnet.maxpool,
-            resnet.layer1,
-            resnet.layer2,
-            nn.AdaptiveAvgPool2d((6, 6))  # 固定輸出大小為 6x6
+            resnet.conv1,  # 初始卷积层，输入 [32, 3, 96, 96] -> 输出 [32, 64, 96, 96]
+            resnet.bn1,    # 批量正则化
+            resnet.relu,   # 激活函数
+            #resnet.maxpool,  # 最大池化，输入 [32, 64, 96, 96] -> 输出 [32, 64, 48, 48]
+            resnet.layer1,  # ResNet 层1，输入 [32, 64, 48, 48] -> 输出 [32, 64, 48, 48]
+            resnet.layer2,  # ResNet 层2，输入 [32, 64, 48, 48] -> 输出 [32, 128, 24, 24]
+            
+            # 新增卷积层和批量正则化
+            nn.Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1), padding='same'),  # 降维卷积，输出 [32, 64, 24, 24]
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(64),
+            
+            nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(2, 2)),  # 空洞卷积
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(64),
+            
+            nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(2, 2)),  # 降低 dilation
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(64),
+            
+            nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(3, 3)),  # 空洞卷积
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(128),
+            
+            nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding='same'),  # 移除 dilation，输出 [32, 128, 6, 6]
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(128),
+            
+            nn.AdaptiveAvgPool2d((6, 6))  # 固定輸出大小為 [32, 128, 6, 6]
         )
 
 
         self.cnn_eye = nn.Sequential(
-            vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
-            nn.Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1), padding='same'),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(64),
-            nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(2, 2)),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(64),
-            nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(3, 3)),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(64),
-            nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(4, 5)),
+            # 使用 ResNet18 的前几层
+            resnet18(weights=ResNet18_Weights.IMAGENET1K_V1).conv1,
+            resnet18(weights=ResNet18_Weights.IMAGENET1K_V1).bn1,
+            resnet18(weights=ResNet18_Weights.IMAGENET1K_V1).relu,
+            resnet18(weights=ResNet18_Weights.IMAGENET1K_V1).maxpool,
+            resnet18(weights=ResNet18_Weights.IMAGENET1K_V1).layer1,
+            resnet18(weights=ResNet18_Weights.IMAGENET1K_V1).layer2,
+            # 保持与原始输出大小一致的调整
+            nn.Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1), padding='same'),
             nn.ReLU(inplace=True),
             nn.BatchNorm2d(128),
-            nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(5, 11)),
+            nn.Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding='same'),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding='same'),
             nn.ReLU(inplace=True),
             nn.BatchNorm2d(128),
+            nn.AdaptiveAvgPool2d((4, 6))  # 调整输出到 (batch_size, 128, 4, 6)
         )
 
         self.fc_face = nn.Sequential(
@@ -143,6 +167,8 @@ class FinalModel(LightningModule):
         #print("FC face output shape:", out_fc_face.shape)
 
         out_cnn_right_eye = self.cnn_eye(right_eye)
+        #print('傳入的cnn_eye:',out_cnn_right_eye.shape)
+
         out_cnn_left_eye = self.cnn_eye(left_eye)
         out_cnn_eye = torch.cat((out_cnn_right_eye, out_cnn_left_eye), dim=1)
 
