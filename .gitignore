@@ -258,3 +258,6 @@ saved_models/
 
 ##lighting_logs
 lightning_logs/
+
+###save data
+data-1/

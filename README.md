@@ -22,6 +22,16 @@ For the citaitions [1] - [10] please see below. "own model 1" represents the mod
 關於[1] - [10]的引用，請參見下文。「自有模型1」代表了下文中描述的模型。「自有模型2」使用了與「自有模型1」相同的模型架構，但在訓練時未使用錯誤數據，請參見下文的MPIIFaceGaze部分。「自有模型3」與「自有模型2」相同，但校準點在螢幕上排列成$\sqrt{k}\times\sqrt{k}$的網格，而不是隨機排列。
 
 
+單目眼動追蹤設置的評估
+作為我的碩士論文的一部分，我基於 Chen 等人 的研究實現了一個新的最先進模型。在使用 9 個校準樣本時，模型性能比之前的最先進方法提高了 5.44%（從 2.7 度降低到 2.553 度）；在使用 128 個校準樣本時，性能提高了 7%（從 2.6 度降低到 2.418 度）。這是通過以下方式實現的：
+
+改進了眼部特徵的提取。
+優化了這些特徵的融合過程。
+在訓練期間移除了 MPIIFaceGaze 數據集中的錯誤數據。
+優化了校準方法。
+我們還提供了一個軟體，用於收集自己的注視數據，以及完整的注視追蹤流程。
+
+
 ## Model
 Since the feature extractors share the same weights for both eyes, it has been shown experimentally that the feature extraction process can be improved by flipping one of the eye images so that the noses of all eye images are on the same side.
 The main reason for this is that the images of the two eyes are more similar this way and the feature extractor can focus more on the relevant features, rather than the unimportant features, of either the left or the right eye.
@@ -39,6 +49,10 @@ For pretrained models, please see evaluation section.
 
 要開始訓練，請運行 python train.py --path_to_data=./data --validate_on_person=1 --test_on_person=0。有關預訓練模型，請參閱評估部分。
 
+由於左右眼的特徵提取器共享相同的權重，實驗證明，通過翻轉其中一只眼睛的圖像，使所有眼睛圖像的鼻子方向位於同一側，可以改善特徵提取過程。這樣做的主要原因是，這種方式使得兩隻眼睛的圖像更加相似，從而特徵提取器可以專注於相關特徵，而不是左眼或右眼中的不重要特徵。
+
+架構改進的主要貢獻是改進了左右眼特徵的融合過程。取代簡單地將兩者結合，我們使用 Squeeze-and-Excitation (SE) 模塊進行融合。這引入了一種控制提取特徵圖通道關係的機制，並使得模型可以逐步學習。
+
 ## Data
 While examining and analyzing the most commonly used gaze prediction dataset, [MPIIFaceGaze](https://www.perceptualui.org/research/datasets/MPIIFaceGaze/) a subset of [MPIIGaze](https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/gaze-based-human-computer-interaction/appearance-based-gaze-estimation-in-the-wild/), in detail.
 It was realized that some recorded data does not match the provided screen sizes. 
@@ -46,11 +60,21 @@ For participant 2, 7, and 10, 0.043%, 8.79%, and 0.39% of the gazes directed at 
 The left figure below shows recorded points in the datasets that do not match the provided screen size. 
 These false target gaze positions are also visible in the right figure below, where the gaze point that are not on the screen have a different yaw offset to the ground truth.
 
-當我們仔細檢查和分析最常使用的注視預測数据集，MPIIFaceGaze時，
-我們發現了一些錄製的數據與提供的螢幕尺寸不匹配。
-對於參與者 2、7 和 10，分別有 0.043%、8.79% 和 0.39% 的注視螢幕的數據與提供的螢幕不匹配。
-下面的左圖顯示了數據集中與提供的螢幕尺寸不匹配的錄製點。
-這些錯誤的目標注視位置在下面的右圖中也清晰可見，其中不在螢幕上的注視點與地面真實值具有不同的偏航偏移。
+在詳細檢查 MPIIFaceGaze 數據集（一個 MPIIGaze 子集）時，我們發現部分記錄的數據與提供的屏幕大小不匹配。例如，對於參與者 2、7 和 10，分別有 0.043%、8.79% 和 0.39% 的注視點不符合屏幕大小規格。
+
+我們是首個處理這一廣泛使用數據集問題的研究團隊，並建議移除對應於有錯誤的所有數據，生成一個新的數據集，稱為 MPIIFaceGaze-。這只會減少數據集大約 3.2%，但顯著提升模型的整體性能。
+
+數據預處理步驟：
+
+下載原始數據集，然後運行：
+python dataset/mpii_face_gaze_preprocessing.py --input_path=./MPIIFaceGaze --output_path=./data
+
+或者直接下載預處理好的數據集。
+如果僅需要生成包含注視點未在屏幕上的文件名的 CSV 文件，可運行以下命令：
+
+python dataset/mpii_face_gaze_errors.py --input_path=./MPIIFaceGaze --output_path=./data
+
+
 
 ![Results of the MPIIFaceGaze analysis](./docs/mpiifacegaze_analysis.png)
 
@@ -78,11 +102,25 @@ To collect your own calibration data or dataset, please refer to [gaze data coll
 ![Comparison of the position of the calibration samples.](./docs/compare_points_on_screen_positions.svg)
 
 
+校準點可以隨機分佈或按照網格方式分佈（如 $\sqrt{k} \times \sqrt{k}$）。網格校準表現通常更優。
+
+運行以下命令進行評估：
+python eval.py --path_to_checkpoints=./pretrained_models --path_to_data=./data
+
+
+
 ## Evaluation
 For evaluation, the trained models are evaluated on the full MPIIFaceGaze, including the erroneous data, for a fair comparison to other approaches.
 Download the [pretrained "own model 2" models](https://drive.google.com/drive/folders/1-_bOyMgAQmnwRGfQ4QIQk7hrin0Mexch?usp=sharing) and
 run `python eval.py --path_to_checkpoints=./pretrained_models --path_to_data=./data` to reproduce the results shown in the figure above and the table below. 
 `--grid_calibration_samples=True` takes a long time to evaluate, for the ease of use the number of calibration runs is reduced to 500.
+
+
+訓練好的模型會在完整的 MPIIFaceGaze 數據集上進行測試，包括錯誤數據，以便與其他方法進行公平比較。請下載預訓練模型並運行以下命令重現結果：
+python eval.py --path_to_checkpoints=./pretrained_models --path_to_data=./data
+
+
+
 
 |  | random calibration<br>k=9 | random calibration<br>k=128 | grid calibration<br>k=9 | grid calibration<br>k=128 |  <br>k=all |
 |---|---:|---:|---:|---:|---:|
