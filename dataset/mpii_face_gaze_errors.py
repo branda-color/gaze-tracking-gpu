@@ -50,6 +50,8 @@ def check_mpii_face_gaze_not_on_screen(input_path: str, output_path: str) -> Non
     :return:
     """
 
+    print("start to move")
+
     data = {'file_name': [], 'on_screen_gaze_position': [], 'monitor_pixels': []}
 
     for person_file_path in sorted(glob.glob(f'{input_path}/p*')):
