@@ -46,32 +46,32 @@ class FinalModel(LightningModule):
         self.subject_biases = nn.Parameter(torch.zeros(15 * 2, 2))  # pitch and yaw offset for the 
 
         # 初始化卡爾曼濾波器
-        self.kf_pitch = KalmanFilter(
-            initial_state=[0, 0],
-            state_covariance=[[1, 0], [0, 1]],
-            process_noise=[[0.01, 0], [0, 0.01]],
-            measurement_noise=[[0.1]]
-        )
-        self.kf_yaw = KalmanFilter(
-            initial_state=[0, 0],
-            state_covariance=[[1, 0], [0, 1]],
-            process_noise=[[0.01, 0], [0, 0.01]],
-            measurement_noise=[[0.1]]
-        )
+        # self.kf_pitch = KalmanFilter(
+        #     initial_state=[0, 0],
+        #     state_covariance=[[0.1, 0], [0, 0.1]],
+        #     process_noise=[[0.05, 0], [0, 0.05]],
+        #     measurement_noise=[[0.05]]
+        # )
+        # self.kf_yaw = KalmanFilter(
+        #     initial_state=[0, 0],
+        #     state_covariance=[[0.1, 0], [0, 0.1]],
+        #     process_noise=[[0.05, 0], [0, 0.05]],
+        #     measurement_noise=[[0.05]]
+        # )
 
         self.cnn_face = nn.Sequential(
             vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
             nn.Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1), padding='same'),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(2, 2)),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(3, 3)),
             nn.ReLU(inplace=True),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(5, 5)),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(128),
             nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(11, 11)),
             nn.ReLU(inplace=True),
@@ -81,13 +81,13 @@ class FinalModel(LightningModule):
         self.cnn_eye = nn.Sequential(
             vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
             nn.Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1), padding='same'),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(2, 2)),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(3, 3)),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(4, 5)),
             nn.ReLU(inplace=True),
@@ -100,7 +100,7 @@ class FinalModel(LightningModule):
         self.fc_face = nn.Sequential(
             nn.Flatten(),
             nn.Linear(6 * 6 * 128, 256),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm1d(256),
             nn.Linear(256, 64),
             nn.ReLU(inplace=True),
@@ -111,13 +111,13 @@ class FinalModel(LightningModule):
             SELayer(256),
 
             nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding='same'),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(256),
 
             SELayer(256),
 
             nn.Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding='same'),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(128),
 
             SELayer(128),
@@ -126,14 +126,14 @@ class FinalModel(LightningModule):
         self.fc_eye = nn.Sequential(
             nn.Flatten(),
             nn.Linear(4 * 6 * 128, 512),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm1d(512),
         )
 
         self.fc_eyes_face = nn.Sequential(
             nn.Dropout(p=0.5),
             nn.Linear(576, 256),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm1d(256),
             nn.Dropout(p=0.5),
             nn.Linear(256, 2),
@@ -154,17 +154,19 @@ class FinalModel(LightningModule):
         t_hat = self.fc_eyes_face(fc_concatenated)  # subject-independent term
 
     # 卡爾曼濾波處理
-        filtered_pitch = []
-        filtered_yaw = []
-        for batch_idx in range(t_hat.size(0)):  # 批次處理
-            pitch, yaw = t_hat[batch_idx].cpu().detach().numpy()
-            filtered_pitch.append(self.kf_pitch.update(pitch)[0])  # 只提取位置
-            filtered_yaw.append(self.kf_yaw.update(yaw)[0])
+        # filtered_pitch = []
+        # filtered_yaw = []
+        # for batch_idx in range(t_hat.size(0)):  # 批次處理
+        #     pitch, yaw = t_hat[batch_idx].cpu().detach().numpy()
+        #     filtered_pitch.append(self.kf_pitch.update(pitch)[0])  # 只提取位置
+        #     filtered_yaw.append(self.kf_yaw.update(yaw)[0])
 
         # 將濾波後的結果轉回 Tensor 格式
-        filtered_output = torch.tensor(list(zip(filtered_pitch, filtered_yaw))).to(t_hat.device)
+        #filtered_output = torch.tensor(list(zip(filtered_pitch, filtered_yaw))).to(t_hat.device)
 
-        return filtered_output  + self.subject_biases[person_idx].squeeze(1)  # t_hat + subject-dependent bias term
+        #return filtered_output  + self.subject_biases[person_idx].squeeze(1)  # t_hat + subject-dependent bias term
+
+        return t_hat + self.subject_biases[person_idx].squeeze(1)
 
 
 if __name__ == '__main__':
