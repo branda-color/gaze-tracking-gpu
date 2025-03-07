@@ -74,8 +74,9 @@ class FinalModel(LightningModule):
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(128),
             nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(11, 11)),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(128),
+            SELayer(128)
         )
 
         self.cnn_eye = nn.Sequential(
@@ -90,11 +91,12 @@ class FinalModel(LightningModule):
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(4, 5)),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(128),
             nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(5, 11)),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(128),
+            SELayer(128)
         )
 
         self.fc_face = nn.Sequential(
@@ -103,8 +105,9 @@ class FinalModel(LightningModule):
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm1d(256),
             nn.Linear(256, 64),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm1d(64),
+            SELayer(64)
         )
 
         self.cnn_eye2fc = nn.Sequential(
