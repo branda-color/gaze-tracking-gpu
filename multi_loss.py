@@ -5,19 +5,22 @@ import torch.nn.functional as F
 import numpy as np
 
 # 角度損失函數
-def angular_loss(predictions, targets):
-    pred_vector = torch.stack([
-        torch.cos(predictions[:, 0]) * torch.cos(predictions[:, 1]),
-        torch.sin(predictions[:, 0]),
-        torch.cos(predictions[:, 0]) * torch.sin(predictions[:, 1])
+def pitchyaw_to_3d_vector(pitchyaw: torch.Tensor) -> torch.Tensor:
+    """
+    2D pitch/yaw 轉換成 3D 視線向量
+    """
+    return torch.stack([
+        -torch.cos(pitchyaw[:, 0]) * torch.sin(pitchyaw[:, 1]),  # x 分量
+        -torch.sin(pitchyaw[:, 0]),  # y 分量
+        -torch.cos(pitchyaw[:, 0]) * torch.cos(pitchyaw[:, 1])  # z 分量
     ], dim=1)
-    target_vector = torch.stack([
-        torch.cos(targets[:, 0]) * torch.cos(targets[:, 1]),
-        torch.sin(targets[:, 0]),
-        torch.cos(targets[:, 0]) * torch.sin(targets[:, 1])
-    ], dim=1)
-    cos_similarity = torch.sum(pred_vector * target_vector, dim=1)
-    return torch.mean(1 - cos_similarity)
+
+def angular_loss(y_pred, y_true):
+    y_pred_3d = pitchyaw_to_3d_vector(y_pred)  # 轉換成 3D 向量
+    y_true_3d = pitchyaw_to_3d_vector(y_true)
+
+    cos_sim = F.cosine_similarity(y_pred_3d, y_true_3d, dim=1)
+    return torch.mean(1 - cos_sim)
 
 # 正則化項 (L1 + L2)
 def regularization_loss(model):

@@ -107,23 +107,22 @@ class FinalModel(LightningModule):
             nn.Linear(256, 64),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm1d(64),
-            SELayer(64)
         )
 
         self.cnn_eye2fc = nn.Sequential(
-            SELayer(256),
+            #SELayer(256),
 
             nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding='same'),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(256),
 
-            SELayer(256),
+            #SELayer(256),
 
             nn.Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding='same'),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(128),
 
-            SELayer(128),
+            #SELayer(128),
         )
 
         self.fc_eye = nn.Sequential(
@@ -145,6 +144,7 @@ class FinalModel(LightningModule):
     def forward(self, person_idx: torch.Tensor, full_face: torch.Tensor, right_eye: torch.Tensor, left_eye: torch.Tensor):
         out_cnn_face = self.cnn_face(full_face)
         out_fc_face = self.fc_face(out_cnn_face)
+        #print(f"注意看out_cnn_face shape: {out_cnn_face.shape}")
 
         out_cnn_right_eye = self.cnn_eye(right_eye)
         out_cnn_left_eye = self.cnn_eye(left_eye)
