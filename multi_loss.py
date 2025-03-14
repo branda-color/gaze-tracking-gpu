@@ -22,6 +22,20 @@ def angular_loss(y_pred, y_true):
     cos_sim = F.cosine_similarity(y_pred_3d, y_true_3d, dim=1)
     return torch.mean(1 - cos_sim)
 
+#MSE加上angular_loss(加上權重)
+def angular_mix_mse(y_pred, y_true, alpha=0.5):
+    """
+    結合 MSE Loss 與 Angular Loss
+    :param y_pred: 預測值 (batch, 2)
+    :param y_true: 目標值 (batch, 2)
+    :param alpha: 平衡係數 (0~1)，決定 MSE Loss 與 Angular Loss 的權重
+    :return: 混合損失值
+    """
+    mse = F.mse_loss(y_pred, y_true)  # 傳統 MSE Loss
+    ang = angular_loss(y_pred, y_true)  # 角度損失
+
+    return alpha * mse + (1 - alpha) * ang
+
 # 正則化項 (L1 + L2)
 def regularization_loss(model):
     l1_reg = torch.sum(torch.abs(model.subject_biases))
