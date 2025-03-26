@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 from pytorch_lightning.loggers import TensorBoardLogger
 from PIL import Image
 import io
+import numpy as np
 
 
 class PitchYaw(Enum):

@@ -68,7 +68,7 @@ class FinalModel(LightningModule):
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(3, 3)),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(5, 5)),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),

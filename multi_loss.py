@@ -36,11 +36,17 @@ def angular_mix_mse(y_pred, y_true, alpha=0.5):
 
     return alpha * mse + (1 - alpha) * ang
 
-# 正則化項 (L1 + L2)
-def regularization_loss(model):
-    l1_reg = torch.sum(torch.abs(model.subject_biases))
-    l2_reg = torch.sum(model.subject_biases ** 2)
-    return 0.01 * (l1_reg + l2_reg)
+def l1_regularization(model, l1_lambda=1e-5):
+    """
+    計算 L1 正則化 (Lasso Regularization)
+    :param model: 需要正則化的神經網絡模型
+    :param l1_lambda: L1 正則化係數，控制 L1 對損失的影響程度
+    :return: L1 正則化損失
+    """
+    l1_reg = torch.tensor(0.0, device=next(model.parameters()).device)
+    for param in model.parameters():
+        l1_reg += torch.norm(param, p=1)  # 計算所有權重的 L1 損失
+    return l1_lambda * l1_reg  # 乘上權重係數
 
 # 多任務損失
 class MultiTaskLoss(torch.nn.Module):
