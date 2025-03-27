@@ -156,21 +156,26 @@ class FinalModel(LightningModule):
         fc_concatenated = torch.cat((out_fc_face, out_fc_eye), dim=1)
         t_hat = self.fc_eyes_face(fc_concatenated)  # subject-independent term
 
-    # 卡爾曼濾波處理
-        # filtered_pitch = []
-        # filtered_yaw = []
-        # for batch_idx in range(t_hat.size(0)):  # 批次處理
-        #     pitch, yaw = t_hat[batch_idx].cpu().detach().numpy()
-        #     filtered_pitch.append(self.kf_pitch.update(pitch)[0])  # 只提取位置
-        #     filtered_yaw.append(self.kf_yaw.update(yaw)[0])
-
-        # 將濾波後的結果轉回 Tensor 格式
-        #filtered_output = torch.tensor(list(zip(filtered_pitch, filtered_yaw))).to(t_hat.device)
-
-        #return filtered_output  + self.subject_biases[person_idx].squeeze(1)  # t_hat + subject-dependent bias term
-
         return t_hat + self.subject_biases[person_idx].squeeze(1)
+    
+    def get_subject_independent_output(self, full_face: torch.Tensor, right_eye: torch.Tensor, left_eye: torch.Tensor) -> torch.Tensor:
+        """
+        Forward without subject bias term. Used for calibration (Eq. 3).
+        """
+        out_cnn_face = self.cnn_face(full_face)
+        out_fc_face = self.fc_face(out_cnn_face)
 
+        out_cnn_right_eye = self.cnn_eye(right_eye)
+        out_cnn_left_eye = self.cnn_eye(left_eye)
+        out_cnn_eye = torch.cat((out_cnn_right_eye, out_cnn_left_eye), dim=1)
+
+        cnn_eye2fc_out = self.cnn_eye2fc(out_cnn_eye)
+        out_fc_eye = self.fc_eye(cnn_eye2fc_out)
+
+        fc_concatenated = torch.cat((out_fc_face, out_fc_eye), dim=1)
+        t_hat = self.fc_eyes_face(fc_concatenated)
+
+        return t_hat
 
 if __name__ == '__main__':
     model = FinalModel()

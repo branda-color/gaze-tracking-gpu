@@ -170,3 +170,35 @@ def get_each_of_one_grid_idx(k: int, gaze_locations: np.ndarray, screen_sizes: n
             valid_random_idx.append(missing_idx.item())
 
     return valid_random_idx
+
+def compute_bias_eq3(model, calib_set, device):
+    """
+    計算 Eq. 3 中的 b̂：偏移向量。
+    :param model: 已訓練好的模型
+    :param calib_set: 校正資料集，每個 item 是 dict
+    :param device: 裝置（cpu or cuda）
+    :return: b_hat 偏移向量 (tensor, shape: [2])
+    """
+    model.eval()
+    t_hats = []
+    gts = []
+
+    with torch.no_grad():
+        for item in calib_set:
+            full_face = item['full_face_image'].unsqueeze(0).to(device)
+            right_eye = item['right_eye_image'].unsqueeze(0).to(device)
+            left_eye = item['left_eye_image'].unsqueeze(0).to(device)
+
+            t_hat = model.get_subject_independent_output(full_face, right_eye, left_eye)
+            t_hats.append(t_hat.squeeze(0).cpu())
+
+            g = torch.tensor([
+                float(item['gaze_pitch']),
+                float(item['gaze_yaw'])
+            ], dtype=torch.float32, device=device)
+            gts.append(g)
+
+    t_hats = torch.stack(t_hats).to(device)  # ✅ 保證在正確的地方
+    gts = torch.stack(gts).to(device)        # ✅ 一樣搬過來
+    b_hat = torch.mean(gts - t_hats, dim=0)
+    return b_hat.to(device)  # ✅ 最重要：保證傳出去是 GPU 版！
