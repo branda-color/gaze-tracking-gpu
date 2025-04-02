@@ -187,7 +187,7 @@ def get_dataloaders(path_to_data: str, validate_on_person: int, test_on_person: 
         dataset_train, 
         batch_size=min(batch_size, 16), 
         shuffle=True, 
-        num_workers=5, 
+        num_workers=3, 
         pin_memory=True, 
         drop_last=True,
         persistent_workers=True

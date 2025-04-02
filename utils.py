@@ -52,6 +52,27 @@ def calc_angle_error(labels: torch.Tensor, outputs: torch.Tensor) -> torch.Tenso
     return torch.rad2deg(rad).mean()
 
 
+def calc_angle_error_for_eval(labels: torch.Tensor, outputs: torch.Tensor) -> torch.Tensor:
+    """
+    Calculate the angle between `labels` and `outputs` in degrees.
+
+    :param labels: ground truth gaze vectors
+    :param outputs: predicted gaze vectors
+    :return: Mean angle in degrees.
+    """
+    labels = pitchyaw_to_3d_vector(labels)
+    labels_norm = labels / torch.linalg.norm(labels, axis=1).reshape((-1, 1))
+
+    outputs = pitchyaw_to_3d_vector(outputs)
+    outputs_norm = outputs / torch.linalg.norm(outputs, axis=1).reshape((-1, 1))
+
+    angles = F.cosine_similarity(outputs_norm, labels_norm, dim=1)
+    angles = torch.clip(angles, -1.0, 1.0)  # fix NaN values for 1.0 < angles < -1.0
+
+    rad = torch.arccos(angles)
+    return torch.rad2deg(rad)
+
+
 def plot_prediction_vs_ground_truth(labels, outputs, axis: PitchYaw):
     """
     Create a plot between the predictions and the ground truth values.
