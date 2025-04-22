@@ -70,25 +70,30 @@ class FinalModel(LightningModule):
             nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(11, 11)),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
             nn.BatchNorm2d(128),
-            SELayer(128)
+            SELayer(128) 
         )
 
         self.cnn_eye = nn.Sequential(
             vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:9],  # first four convolutional layers of VGG16 pretrained on ImageNet
             nn.Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1), padding='same'),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+         
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(2, 2)),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(3, 3)),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(4, 5)),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+
             nn.BatchNorm2d(128),
             nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding='valid', dilation=(5, 11)),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+
             nn.BatchNorm2d(128),
             SELayer(128)
         )
@@ -97,32 +102,37 @@ class FinalModel(LightningModule):
             nn.Flatten(),
             nn.Linear(6 * 6 * 128, 256),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+
             nn.BatchNorm1d(256),
             nn.Linear(256, 64),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+
             nn.BatchNorm1d(64),
         )
 
         self.cnn_eye2fc = nn.Sequential(
-            #SELayer(256),
+            SELayer(256),
 
             nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding='same'),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+
             nn.BatchNorm2d(256),
 
-            #SELayer(256),
+            SELayer(256),
 
             nn.Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding='same'),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+
             nn.BatchNorm2d(128),
 
-            #SELayer(128),
+            SELayer(128),
         )
 
         self.fc_eye = nn.Sequential(
             nn.Flatten(),
             nn.Linear(4 * 6 * 128, 512),
             nn.LeakyReLU(negative_slope=0.01, inplace=True),
+
             nn.BatchNorm1d(512),
         )
 
