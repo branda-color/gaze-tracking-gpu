@@ -164,6 +164,7 @@ class FinalModel(LightningModule):
 
         b_hat = self.bias_mlp(person_idx)  # ⬅ 用 MLP 動態產生偏移
         return t_hat + b_hat
+        #return t_hat
 
 
     
