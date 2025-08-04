@@ -10,6 +10,8 @@ import torch
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
+import random
+import math
 
 
 def filter_persons_by_idx(file_names: List[str], keep_person_idxs: List[int]) -> List[int]:
@@ -83,7 +85,22 @@ class MPIIFaceGaze(Dataset):
         else:
             by_person_idx = filter_persons_by_idx(file_names, keep_person_idxs)
             non_error_idx = file_names if use_erroneous_data else remove_error_data(data_path, file_names)
-            self.idx2ValidIdx = list(set(by_person_idx) & set(non_error_idx))
+            ################加的平均資料###################
+            base_indices = list(set(by_person_idx) & set(non_error_idx))
+
+            # ✅ 補充：加倍複製極端樣本（例如 |yaw| > 20）
+            with h5py.File(self.hdf5_file_name, 'r') as f:
+                gt_yaw_all = f['gaze_yaw'][:]
+
+            extreme_indices = [
+                i for i in base_indices
+                if abs(math.degrees(gt_yaw_all[i])) > 20
+            ]
+
+            # ✅ 合併回訓練用 index：原本 + 額外複製極端視角
+            self.idx2ValidIdx = base_indices + extreme_indices + extreme_indices  # 加倍複製2次，可再加更多
+            ################加的###################
+            #self.idx2ValidIdx = list(set(by_person_idx) & set(non_error_idx))
 
     def __len__(self) -> int:
         return len(self.idx2ValidIdx) * 2 if self.train else len(self.idx2ValidIdx)
@@ -151,8 +168,7 @@ class MPIIFaceGaze(Dataset):
 
 def get_dataloaders(path_to_data: str, validate_on_person: int, test_on_person: int, batch_size: int) -> Tuple[DataLoader, DataLoader, DataLoader]:
     """
-    Create train, valid and test dataset.
-    The train dataset includes all persons except `validate_on_person` and `test_on_person`.
+    Create train, valid and test dataset with optimized memory usage.
 
     :param path_to_data: path to dataset
     :param validate_on_person: person id to validate on during training
@@ -181,16 +197,40 @@ def get_dataloaders(path_to_data: str, validate_on_person: int, test_on_person: 
     print('valid on person', validate_on_person)
     print('test on person', test_on_person)
 
+    # ✅ 減少 num_workers，避免記憶體爆炸
     dataset_train = MPIIFaceGaze(path_to_data, 'data.h5', keep_person_idxs=train_on_persons, transform=transform['train'], train=True)
     print('len(dataset_train)', len(dataset_train))
-    train_dataloader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4,drop_last=True)
-
+    train_dataloader = DataLoader(
+        dataset_train, 
+        batch_size=min(batch_size, 16), 
+        shuffle=True, 
+        num_workers=3, 
+        pin_memory=True, 
+        drop_last=True,
+        persistent_workers=True
+    )
+    
     dataset_valid = MPIIFaceGaze(path_to_data, 'data.h5', keep_person_idxs=[validate_on_person], transform=transform['valid'])
     print('len(dataset_valid)', len(dataset_valid))
-    valid_dataloader = DataLoader(dataset_valid, batch_size=batch_size, shuffle=False, num_workers=4,drop_last=True)
+    valid_dataloader = DataLoader(
+        dataset_valid, 
+        batch_size=min(batch_size, 16), 
+        shuffle=False, 
+        num_workers=5, 
+        pin_memory=False, 
+        drop_last=True,
+        prefetch_factor=2
+    )
 
     dataset_test = MPIIFaceGaze(path_to_data, 'data.h5', keep_person_idxs=[test_on_person], transform=transform['valid'], use_erroneous_data=True)
     print('len(dataset_test)', len(dataset_test))
-    test_dataloader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=4,drop_last=True)
+    test_dataloader = DataLoader(
+        dataset_test, 
+        batch_size=min(batch_size, 16), 
+        shuffle=False, 
+        num_workers=5, 
+        pin_memory=False, 
+        drop_last=True
+    )
 
     return train_dataloader, valid_dataloader, test_dataloader

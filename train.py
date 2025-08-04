@@ -129,6 +129,8 @@ class Model(FinalModel):
                     pitch_fixed, yaw_fixed = torch.Tensor(pitch_fixed), torch.Tensor(yaw_fixed)
                     outputs_fixed = torch.stack([pitch_fixed, yaw_fixed], dim=1).squeeze(-1)
                     calibrated_solutions.append(calc_angle_error(torch.Tensor(calibration_test_labels), outputs_fixed).item())
+                    #calibrated_solutions.append(calc_angle_error(torch.Tensor(calibration_test_labels), outputs_fixed).mean().item())
+
 
                 self.log(f'{tag}/offset(k={k})/mean_angular_error', np.asarray(calibrated_solutions).mean())
                 self.log(f'{tag}/offset(k={k})/std_angular_error', np.asarray(calibrated_solutions).std())

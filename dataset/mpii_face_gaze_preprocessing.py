@@ -14,7 +14,6 @@ from tqdm import tqdm
 
 from dataset.mpii_face_gaze_errors import check_mpii_face_gaze_not_on_screen
 
-
 def get_matrices(camera_matrix: np.ndarray, distance_norm: int, center_point: np.ndarray, focal_norm: int, head_rotation_matrix: np.ndarray, image_output_size: Tuple[int, int]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Calculate rotation, scaling and transformation matrix.
@@ -109,6 +108,8 @@ def normalize_single_image(image: np.ndarray, head_rotation, gaze_target: np.nda
 
 def main(input_path: str, output_path: str):
     data = defaultdict(list)
+
+    print("start to move pro")
 
     face_model = scipy.io.loadmat(f'{input_path}/6 points-based face model.mat')['model']
 
