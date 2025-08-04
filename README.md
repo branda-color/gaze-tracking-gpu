@@ -25,7 +25,8 @@
 
 ## 🎯 Calibration
 
-- 採用 Eq.3 校正策略：選定單一注視點，計算平均 gaze 誤差向量 \( \hat{b} \)，補償模型預測偏差  
+- 採用 Eq.3 校正策略：選定單一注視點，計算平均 gaze 誤差向量 <img width="194" height="39" alt="螢幕擷取畫面 2025-03-31 155814" src="https://github.com/user-attachments/assets/8ed62aa7-bc7e-47ea-b44b-980885fc559e" />
+，補償模型預測偏差  
 - 實作 `evaluate_with_eq3()`，支援多樣本校正（S=1, 5, 9, 16）並輸出校正後誤差  
 - 模型內建偏移補償模組 `bias_mlp(i)`：於訓練階段根據 person_idx 學習個體化偏移  
 - 提供雙模組比較：Eq.3 手動後校正 vs 模型內建動態偏移補償  
@@ -36,9 +37,7 @@
 ## 📈 Evaluation
 
 - 評估指標：Angular Error（單位：度）  
-  \[
-  AE(\hat{g}, g) = \cos^{-1}\left( \frac{\hat{g} \cdot g}{||\hat{g}|| \cdot ||g||} \right)
-  \]
+<img width="374" height="100" alt="螢幕擷取畫面 2025-03-25 144035" src="https://github.com/user-attachments/assets/e8d27d61-e581-4bf6-94d2-beb3929acd8d" />  
 - 預測值為 [pitch, yaw]，需先轉換為 3D gaze vector  
 - Ground Truth 向量為由資料標註轉換所得的單位 gaze vector  
 - `eval.ipynb` 提供完整評估流程，可針對不同 S 值執行校正後測試  
