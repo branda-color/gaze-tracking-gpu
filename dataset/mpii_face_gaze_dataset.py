@@ -10,6 +10,8 @@ import torch
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
+import random
+import math
 
 
 def filter_persons_by_idx(file_names: List[str], keep_person_idxs: List[int]) -> List[int]:
@@ -83,7 +85,22 @@ class MPIIFaceGaze(Dataset):
         else:
             by_person_idx = filter_persons_by_idx(file_names, keep_person_idxs)
             non_error_idx = file_names if use_erroneous_data else remove_error_data(data_path, file_names)
-            self.idx2ValidIdx = list(set(by_person_idx) & set(non_error_idx))
+            ################加的平均資料###################
+            base_indices = list(set(by_person_idx) & set(non_error_idx))
+
+            # ✅ 補充：加倍複製極端樣本（例如 |yaw| > 20）
+            with h5py.File(self.hdf5_file_name, 'r') as f:
+                gt_yaw_all = f['gaze_yaw'][:]
+
+            extreme_indices = [
+                i for i in base_indices
+                if abs(math.degrees(gt_yaw_all[i])) > 20
+            ]
+
+            # ✅ 合併回訓練用 index：原本 + 額外複製極端視角
+            self.idx2ValidIdx = base_indices + extreme_indices + extreme_indices  # 加倍複製2次，可再加更多
+            ################加的###################
+            #self.idx2ValidIdx = list(set(by_person_idx) & set(non_error_idx))
 
     def __len__(self) -> int:
         return len(self.idx2ValidIdx) * 2 if self.train else len(self.idx2ValidIdx)
