@@ -37,7 +37,8 @@
 ## 📈 Evaluation
 
 - 評估指標：Angular Error（單位：度）  
-<img width="374" height="100" alt="螢幕擷取畫面 2025-03-25 144035" src="https://github.com/user-attachments/assets/e8d27d61-e581-4bf6-94d2-beb3929acd8d" />  
+<img width="374" height="100" alt="螢幕擷取畫面 2025-03-25 144035" src="https://github.com/user-attachments/assets/e8d27d61-e581-4bf6-94d2-beb3929acd8d" />
+  
 - 預測值為 [pitch, yaw]，需先轉換為 3D gaze vector  
 - Ground Truth 向量為由資料標註轉換所得的單位 gaze vector  
 - `eval.ipynb` 提供完整評估流程，可針對不同 S 值執行校正後測試  
